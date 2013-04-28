@@ -13,11 +13,10 @@ import os
 def sarLoad():
 	#Open and read inputFile
 	iSar = open(inputFile)
-	iSar.readline()
 
 	counter = 0
 	column = []
-	headTemplate = ["CPU","proc","pswpin","pgpgin","tps","frmpg","kbmem","kbswp","kbhug","dentunusd","runq-az","rxpck","rxerr","retrans","scall","totsck"]
+	headTemplate = ["CPU","proc/s","pswpin/s","pgpgin/s","tps","frmpg/s","kbmemfree","kbswpfree","kbhugfree","dentunusd","runq-sz","IFACE","call/s","scall/s","totsck"]
 	stdDev = []
 	Averages = []
 	avgLoc = []
@@ -37,20 +36,26 @@ def sarLoad():
 		else:
 			footLoc.append(counter)	
 		counter+=1
-		print column[0:5]
 
-	print "\n%d - %d\n%s - %s\n%s - %s\n%s" %(len(Averages),counter,len(Averages),len(avgLoc),len(Headers),len(headLoc),len(footLoc))
+	counter2 = 0
+	printLines = []
+	iSar.seek(0)
+	printLines = headLoc+avgLoc+footLoc
+	printLines.sort()
+#	print printLines
+	for output in iSar:
+		if counter2 in printLines:
+			print output[:-1]
+			counter2+=1	
+		else:
+			counter2+=1
 	iSar.close()
-
-def sarPrint():
-	pass
 
 #Check how we were invoked.
 if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
 	inputFile = sys.argv[1]
 	print "Welcome to saranalyze! Parsing the information in "+inputFile
 	sarLoad()
-	sarPrint()
 else:
 	exit
 
