@@ -2,7 +2,55 @@
 # saranalyze: For the analysis of sar files to help diagnose issues
 # Written by: Kyle Walker kwalker@redhat.com
 
+#Importing libraries and functionality
+import sys
 import os
+#import pdb; pdb.set_trace()
+
+#Setting constants
 
 
+def sarLoad():
+	#Open and read inputFile
+	iSar = open(inputFile)
+	iSar.readline()
+
+	counter = 0
+	column = []
+	headTemplate = ["CPU","proc","pswpin","pgpgin","tps","frmpg","kbmem","kbswp","kbhug","dentunusd","runq-az","rxpck","rxerr","retrans","scall","totsck"]
+	stdDev = []
+	Averages = []
+	avgLoc = []
+	Headers = []
+	headLoc = []
+	footLoc = []
+	for line in iSar:
+		line = line.strip()
+		column = filter(None, line.split(" "))
+		if len(column) > 1:
+			if "Average" in column[0]:
+				Averages.append(line.strip())
+				avgLoc.append(counter)
+			elif column[1] in headTemplate:
+				Headers.append(line)
+				headLoc.append(counter)
+		else:
+			footLoc.append(counter)	
+		counter+=1
+		print column[0:5]
+
+	print "\n%d - %d\n%s - %s\n%s - %s\n%s" %(len(Averages),counter,len(Averages),len(avgLoc),len(Headers),len(headLoc),len(footLoc))
+	iSar.close()
+
+def sarPrint():
+	pass
+
+#Check how we were invoked.
+if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
+	inputFile = sys.argv[1]
+	print "Welcome to saranalyze! Parsing the information in "+inputFile
+	sarLoad()
+	sarPrint()
+else:
+	exit
 
