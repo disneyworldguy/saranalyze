@@ -3,50 +3,91 @@
 # Written by: Kyle Walker kwalker@redhat.com
 
 #Importing libraries and functionality
-import sys
-import os
-#import pdb; pdb.set_trace()
+import sys, os, numpy, pdb
 
-#Setting constants
+#Setting global lists that will be accessible between the functions below
+column = []
+linuxVer = ""
+headTemplate = ["CPU","proc/s","pswpin/s","pgpgin/s","tps","frmpg/s","kbmemfree","kbswpfree","kbhugfree","dentunusd","runq-sz","rxpck/s", "rxerr/s","call/s","scall/s","totsck"]
+dataSet = []
+stdDev = []
+Averages = []
+avgLoc = []
+Headers = []
+headLoc = []
+footLoc = []
+restarts = [0]
+printLines = []
 
-
+#Responsible for initially opening the sar file passed and parsing contents
 def sarLoad():
-	#Open and read inputFile
+	global iSar, inputFile, printLines, restarts, column, dataSet, Headers, headLoc, avgLoc
 	iSar = open(inputFile)
-
+	
 	counter = 0
-	column = []
-	headTemplate = ["CPU","proc/s","pswpin/s","pgpgin/s","tps","frmpg/s","kbmemfree","kbswpfree","kbhugfree","dentunusd","runq-sz","IFACE","call/s","scall/s","totsck"]
-	stdDev = []
-	Averages = []
-	avgLoc = []
-	Headers = []
-	headLoc = []
-	footLoc = []
 	for line in iSar:
-		line = line.strip()
 		column = filter(None, line.split(" "))
 		if len(column) > 1:
-			if "Average" in column[0]:
-				Averages.append(line.strip())
+			column[-1] = column[-1].strip()
+			column.insert(0, counter)
+			if "Average" in column[1]:
+				Averages.append(filter(None, line.split(" ")))
+				Averages[-1][-1] = Averages[-1][-1].strip()
 				avgLoc.append(counter)
-			elif column[1] in headTemplate:
+			elif column[2] in headTemplate or column[3] in headTemplate:
 				Headers.append(line)
 				headLoc.append(counter)
+			elif "Linux" in column[1]:
+				linuxVer = column[2]
+			elif "RESTART" in column[3]:
+				restarts.append(counter)
+			dataSet.append(column)
 		else:
 			footLoc.append(counter)	
 		counter+=1
 
-	counter2 = 0
-	printLines = []
-	iSar.seek(0)
+	restarts.append(counter)
+
+	iSar.close()
 	printLines = headLoc+avgLoc+footLoc
+
+#Works through the provided data looking for datapoints that should be printed
+def sarAnalyze():
+	global printLines, dataSet, headLoc, footLoc
+
+	cpuArray = []; tempArray = []
+	for CPU in range(headLoc[0],avgLoc[0]-1):
+		cpuArray.append(map(float, dataSet[CPU][3:]))
+		
+	stdDev.append(numpy.std(cpuArray,0))
+
+	for CPU in range(headLoc[0],avgLoc[0]-1):
+		for columnTemp in range(3, len(dataSet[0])):
+			if dataSet[CPU][columnTemp] >= (float(Averages[0][columnTemp])+(stdDev[0][columnTemp]*2)) or dataSet[CPU][columnTemp] >= (float(Averages[0][columnTemp])+(stdDev[0][columnTemp]*2)):
+				printLines.append(dataSet[CPU][0])
+				print "Original %s\t%f\t%f\t%f" % (dataSet[CPU][columnTemp],float(dataSet[CPU][columnTemp]), float(Averages[0][columnTemp]), stdDev[0][columnTemp]*2)
+	pdb.set_trace()
+	pass
+
+#Prints the lines in the passed file that are deemed interesting
+def sarPrint(selRestart):
+	counter2 = 0
+	selRestart = (int(selRestart))
 	printLines.sort()
-#	print printLines
+	global iSar, inputFile
+	iSar = open(inputFile)
+	
 	for output in iSar:
 		if counter2 in printLines:
-			print output[:-1]
-			counter2+=1	
+			if len(restarts) > 0:
+				if counter2 < restarts[selRestart] and counter2 > restarts[selRestart-1]:
+					print output[:-1]
+					counter2+=1	
+				else:
+					counter2+=1
+			else:
+				print output[:-1]
+				counter2+=1
 		else:
 			counter2+=1
 	iSar.close()
@@ -54,8 +95,14 @@ def sarLoad():
 #Check how we were invoked.
 if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
 	inputFile = sys.argv[1]
+	os.system("clear")
 	print "Welcome to saranalyze! Parsing the information in "+inputFile
 	sarLoad()
+	sarAnalyze()
+	if len(restarts) > 0:
+		print "\nThere are %d restarts in the source sar file.\n"  % (len(restarts)-2)
+		selRestart = raw_input("Which data section would you like analyzed for output [1-9]: ")
+	sarPrint(selRestart)
 else:
 	exit
 
