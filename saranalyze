@@ -54,31 +54,17 @@ def sarLoad():
 #Works through the provided data looking for datapoints that should be printed
 def sarAnalyze():
 	global printLines, dataSet, headLoc, footLoc
+	pdb.set_trace()
 
-	cpuArray = []; tempArray = []
-	for CPU in range(headLoc[0],avgLoc[0]-1):
+	cpuArray = [] 
+	for CPU in range(headLoc[0],avgLoc[0]):
 		cpuArray.append(map(float, dataSet[CPU][3:]))
 		
 	stdDev.append(numpy.std(cpuArray,axis=0))
 
-#	for x in range(0,len(stdDev)):
-#		print (float(Averages[0][(x+2)])+stdDev[x]*2) 
-#		print
-#		print (float(Averages[0][(x+2)])-stdDev[x]*2) 
-#		print
-#		print dataSet[2][(x+3)]
-#		print
-#		if  float(Averages[0][(x+2)])+stdDev[x]*2 <= float(dataSet[2][x+3]): 
-#			print "TRUE GT"
-#		elif float(Averages[0][(x+2)])-stdDev[x]*2 >= dataSet[2][x+3] :
-#			print "TRUE LT"
-#		else:
-#			print "FALSE"
-
 	for CPU in range(headLoc[0],avgLoc[0]-1):
 		for columnTemp in range(3, len(dataSet[0])):
 			if float(dataSet[CPU][columnTemp]) > round((float(Averages[0][(columnTemp-1)])+(stdDev[0][(columnTemp-3)]*2)),2) or float(dataSet[CPU][columnTemp]) < round((float(Averages[0][(columnTemp-1)])-(stdDev[0][(columnTemp-3)]*2)),2):
-#				pdb.set_trace()
 				printLines.append(dataSet[CPU][0])
 
 #Prints the lines in the passed file that are deemed interesting
