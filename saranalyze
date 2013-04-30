@@ -59,15 +59,27 @@ def sarAnalyze():
 	for CPU in range(headLoc[0],avgLoc[0]-1):
 		cpuArray.append(map(float, dataSet[CPU][3:]))
 		
-	stdDev.append(numpy.std(cpuArray,0))
+	stdDev.append(numpy.std(cpuArray,axis=0))
+
+#	for x in range(0,len(stdDev)):
+#		print (float(Averages[0][(x+2)])+stdDev[x]*2) 
+#		print
+#		print (float(Averages[0][(x+2)])-stdDev[x]*2) 
+#		print
+#		print dataSet[2][(x+3)]
+#		print
+#		if  float(Averages[0][(x+2)])+stdDev[x]*2 <= float(dataSet[2][x+3]): 
+#			print "TRUE GT"
+#		elif float(Averages[0][(x+2)])-stdDev[x]*2 >= dataSet[2][x+3] :
+#			print "TRUE LT"
+#		else:
+#			print "FALSE"
 
 	for CPU in range(headLoc[0],avgLoc[0]-1):
 		for columnTemp in range(3, len(dataSet[0])):
-			if dataSet[CPU][columnTemp] >= (float(Averages[0][columnTemp])+(stdDev[0][columnTemp]*2)) or dataSet[CPU][columnTemp] >= (float(Averages[0][columnTemp])+(stdDev[0][columnTemp]*2)):
+			if float(dataSet[CPU][columnTemp]) > round((float(Averages[0][(columnTemp-1)])+(stdDev[0][(columnTemp-3)]*2)),2) or float(dataSet[CPU][columnTemp]) < round((float(Averages[0][(columnTemp-1)])-(stdDev[0][(columnTemp-3)]*2)),2):
+#				pdb.set_trace()
 				printLines.append(dataSet[CPU][0])
-				print "Original %s\t%f\t%f\t%f" % (dataSet[CPU][columnTemp],float(dataSet[CPU][columnTemp]), float(Averages[0][columnTemp]), stdDev[0][columnTemp]*2)
-	pdb.set_trace()
-	pass
 
 #Prints the lines in the passed file that are deemed interesting
 def sarPrint(selRestart):
@@ -100,7 +112,7 @@ if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
 	sarLoad()
 	sarAnalyze()
 	if len(restarts) > 0:
-		print "\nThere are %d restarts in the source sar file.\n"  % (len(restarts)-2)
+		print "\nThere are %d restart(s) in the source sar file.\n"  % (len(restarts)-2)
 		selRestart = raw_input("Which data section would you like analyzed for output [1-9]: ")
 	sarPrint(selRestart)
 else:
