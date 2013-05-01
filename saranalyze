@@ -8,7 +8,7 @@ import sys, os, numpy, pdb
 #Setting global lists that will be accessible between the functions below
 column = []
 linuxVer = ""
-cpuCount = 0
+cpuCount = 0; stdSel = 2      #Defaults to datapoints beyond 2 STD Deviations
 headTemplate = ["CPU","proc/s","pswpin/s","pgpgin/s","tps","frmpg/s","kbmemfree","kbswpfree","kbhugfree","dentunusd","runq-sz","rxpck/s", "rxerr/s","call/s","scall/s","totsck"]
 dataSet = []
 stdDev = []
@@ -82,18 +82,23 @@ def sarAnalyze():
 		stdDev.append(numpy.std(tempArray,axis=0))
 		tempArray=[]
 
-	pdb.set_trace()
 
-	#This next section needs work
+	cpuSelected = cpuCount
 
-	for entry in range(headLoc[0],avgLoc[0]-1):
-		for columnTemp in range(3, len(dataSet[0])):
+	for entry in range(headLoc[0],avgLoc[0]):
+		for columnTemp in range(3, (len(dataSet[(headLoc[0])])-1)):
 			try:
-				if float(dataSet[entry][columnTemp]) > round((float(Averages[0][(columnTemp-1)])+(stdDev[0][(columnTemp-3)]*2)),2) or float(dataSet[entry][columnTemp]) < round((float(Averages[0][(columnTemp-1)])-(stdDev[0][(columnTemp-3)]*2)),2):
+				if float(dataSet[entry][columnTemp]) > round((float(Averages[cpuSelected][(columnTemp-1)])+(stdDev[0][(columnTemp-3)]*stdSel)),2):
                     			printLines.append(dataSet[entry][0])
-				break
+				elif float(dataSet[entry][columnTemp]) < round((float(Averages[cpuSelected][(columnTemp-1)])-(stdDev[0][(columnTemp-3)]*stdSel)),2):
+                    			printLines.append(dataSet[entry][0])
 			except ValueError:
 				pass
+		if (cpuSelected + 1) > cpuCount:
+			cpuSelected = 0
+		else:
+			cpuSelected+= 1
+	pdb.set_trace()
 
 #Prints the lines in the passed file that are deemed interesting
 def sarPrint(selRestart):
