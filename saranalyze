@@ -54,12 +54,22 @@ def sarLoad():
 #Works through the provided data looking for datapoints that should be printed
 def sarAnalyze():
 	global printLines, dataSet, headLoc, footLoc
-	pdb.set_trace()
 
 	cpuArray = [] 
+
+#	pdb.set_trace()
+
+	print "%d - %d" % (headLoc[0],avgLoc[0])
+
 	for CPU in range(headLoc[0],avgLoc[0]):
-		cpuArray.append(map(float, dataSet[CPU][3:]))
-		
+		if len(dataSet[CPU]) < 12:
+			pass
+		elif dataSet[CPU][1] in headTemplate:
+			pass
+		else:
+			cpuArray.append(map(float, dataSet[CPU][3:]))
+			
+	
 	stdDev.append(numpy.std(cpuArray,axis=0))
 
 	for CPU in range(headLoc[0],avgLoc[0]-1):
