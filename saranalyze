@@ -8,6 +8,7 @@ import sys, os, numpy, pdb
 #Setting global lists that will be accessible between the functions below
 column = []
 linuxVer = ""
+cpuCount = 0
 headTemplate = ["CPU","proc/s","pswpin/s","pgpgin/s","tps","frmpg/s","kbmemfree","kbswpfree","kbhugfree","dentunusd","runq-sz","rxpck/s", "rxerr/s","call/s","scall/s","totsck"]
 dataSet = []
 stdDev = []
@@ -21,32 +22,44 @@ printLines = []
 
 #Responsible for initially opening the sar file passed and parsing contents
 def sarLoad():
-	global iSar, inputFile, printLines, restarts, column, dataSet, Headers, headLoc, avgLoc
+	global iSar, inputFile, printLines, restarts, column, dataSet, Headers, headLoc, avgLoc, cpuCount
 	iSar = open(inputFile)
 	
+	placeHolder=0
 	counter = 0
 	for line in iSar:
 		column = filter(None, line.split(" "))
 		if len(column) > 1:
 			column[-1] = column[-1].strip()
 			column.insert(0, counter)
-			if "Average" in column[1]:
+			if "Linux" in column[1]:
+				linuxVer = column[2]
+			elif placeHolder == 0 and (column[2] in headTemplate or column[3] in headTemplate):
+				Headers.append(line)
+				headLoc.append(counter)
+				placeHolder = 1
+			elif "Average" in column[1]:
 				Averages.append(filter(None, line.split(" ")))
 				Averages[-1][-1] = Averages[-1][-1].strip()
 				avgLoc.append(counter)
-			elif column[2] in headTemplate or column[3] in headTemplate:
-				Headers.append(line)
-				headLoc.append(counter)
-			elif "Linux" in column[1]:
-				linuxVer = column[2]
+				placeHolder = 0
 			elif "RESTART" in column[3]:
 				restarts.append(counter)
 			dataSet.append(column)
-		else:
+		elif len(column) == 1 and placeHolder == 0:
 			footLoc.append(counter)	
 		counter+=1
 
 	restarts.append(counter)
+	
+	#Figure out how many CPUs are in the source sar file
+	for x in range(0,len(avgLoc)):
+		try:
+			if avgLoc[x] == (avgLoc[(x+1)]-1):
+				cpuCount+=1
+				break
+		except ValueError:
+			pass
 
 	iSar.close()
 	printLines = headLoc+avgLoc+footLoc
@@ -55,27 +68,32 @@ def sarLoad():
 def sarAnalyze():
 	global printLines, dataSet, headLoc, footLoc
 
-	cpuArray = [] 
+	cpuArray = []; tempArray = []
 
-#	pdb.set_trace()
 
-	print "%d - %d" % (headLoc[0],avgLoc[0])
+	for entry in range(headLoc[0],avgLoc[0]):
+		if not (len(dataSet[entry]) < 12 or dataSet[entry][2] in headTemplate):
+			cpuArray.append(dataSet[entry][2:])
 
-	for CPU in range(headLoc[0],avgLoc[0]):
-		if len(dataSet[CPU]) < 12:
-			pass
-		elif dataSet[CPU][1] in headTemplate:
-			pass
-		else:
-			cpuArray.append(map(float, dataSet[CPU][3:]))
-			
-	
-	stdDev.append(numpy.std(cpuArray,axis=0))
+	cpuArray.sort()
+	for CPU in range(0, (cpuCount+1)):
+		for iteration in range(CPU,(len(cpuArray)/(cpuCount+1))):
+			tempArray.append(map(float, cpuArray[iteration][1:]))
+		stdDev.append(numpy.std(tempArray,axis=0))
+		tempArray=[]
 
-	for CPU in range(headLoc[0],avgLoc[0]-1):
+	pdb.set_trace()
+
+	#This next section needs work
+
+	for entry in range(headLoc[0],avgLoc[0]-1):
 		for columnTemp in range(3, len(dataSet[0])):
-			if float(dataSet[CPU][columnTemp]) > round((float(Averages[0][(columnTemp-1)])+(stdDev[0][(columnTemp-3)]*2)),2) or float(dataSet[CPU][columnTemp]) < round((float(Averages[0][(columnTemp-1)])-(stdDev[0][(columnTemp-3)]*2)),2):
-				printLines.append(dataSet[CPU][0])
+			try:
+				if float(dataSet[entry][columnTemp]) > round((float(Averages[0][(columnTemp-1)])+(stdDev[0][(columnTemp-3)]*2)),2) or float(dataSet[entry][columnTemp]) < round((float(Averages[0][(columnTemp-1)])-(stdDev[0][(columnTemp-3)]*2)),2):
+                    			printLines.append(dataSet[entry][0])
+				break
+			except ValueError:
+				pass
 
 #Prints the lines in the passed file that are deemed interesting
 def sarPrint(selRestart):
